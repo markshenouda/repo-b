@@ -64,7 +64,7 @@ jobs:
           EOF
           
           # Parse and format the changed files JSON array
-          echo '${{ github.event.client_payload.changed_files }}' | jq -r '.[] | "- `" + . + "`"' >> "$NOTIFICATION_FILE"
+          echo '${{ toJSON(github.event.client_payload.changed_files) }}' | jq -r '.[] | "- `" + . + "`"' >> "$NOTIFICATION_FILE"
           
           cat >> "$NOTIFICATION_FILE" << 'EOF'
           
@@ -112,7 +112,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const changedFiles = ${{ github.event.client_payload.changed_files }};
+            const changedFiles = ${{ toJSON(github.event.client_payload.changed_files) }};
             const fileCount = changedFiles.length;
             const fileList = changedFiles.map(file => `- \`${file}\``).join('\n');
             
