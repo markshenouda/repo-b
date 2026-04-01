@@ -1,0 +1,34 @@
+{
+  "name": "repo-b",
+  "version": "1.0.0",
+  "description": "Target repository for cross-repository webhook notifications and PR creation",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node --watch src/app.js"
+  },
+  "keywords": [
+    "webhook",
+    "github-actions",
+    "automation",
+    "cross-repository",
+    "notifications"
+  ],
+  "author": "Cross-Webhook System",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/repo-b.git"
+  },
+  "bugs": {
+    "url": "https://github.com/YOUR_USERNAME/repo-b/issues"
+  },
+  "homepage": "https://github.com/YOUR_USERNAME/repo-b#readme"
+}
