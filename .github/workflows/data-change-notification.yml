@@ -135,7 +135,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const changedFiles = ${{ toJSON(github.event.inputs.changed_files) }};
+            const changedFiles = JSON.parse(${{ toJSON(github.event.inputs.changed_files) }});
             const fileCount = changedFiles.length;
             const fileList = changedFiles.map(file => `- \`${file}\``).join('\n');
 
