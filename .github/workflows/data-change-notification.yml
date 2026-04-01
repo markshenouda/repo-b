@@ -1,8 +1,29 @@
-name: Data Change Notification PR Creator
+name: Data Change Notification
 
 on:
-  repository_dispatch:
-    types: [data_folder_changed]
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: 'Source repository'
+        required: true
+      commit_sha:
+        description: 'Commit SHA'
+        required: true
+      commit_message:
+        description: 'Commit message'
+        required: true
+      author:
+        description: 'Commit author'
+        required: true
+      changed_files:
+        description: 'Changed files (JSON array)'
+        required: true
+      timestamp:
+        description: 'Commit timestamp'
+        required: true
+      compare_url:
+        description: 'Compare URL'
+        required: true
 
 jobs:
   create-notification-pr:
@@ -19,17 +40,17 @@ jobs:
 
       - name: Display received webhook payload
         run: |
-          echo "🔔 Webhook received from: ${{ github.event.client_payload.repository }}"
-          echo "📝 Commit: ${{ github.event.client_payload.commit_sha }}"
-          echo "👤 Author: ${{ github.event.client_payload.author }}"
-          echo "💬 Message: ${{ github.event.client_payload.commit_message }}"
-          echo "📁 Changed files: ${{ github.event.client_payload.changed_files }}"
-          echo "🕐 Timestamp: ${{ github.event.client_payload.timestamp }}"
+          echo "🔔 Webhook received from: ${{ github.event.inputs.repository }}"
+          echo "📝 Commit: ${{ github.event.inputs.commit_sha }}"
+          echo "👤 Author: ${{ github.event.inputs.author }}"
+          echo "💬 Message: ${{ github.event.inputs.commit_message }}"
+          echo "📁 Changed files: ${{ github.event.inputs.changed_files }}"
+          echo "🕐 Timestamp: ${{ github.event.inputs.timestamp }}"
 
       - name: Create notification branch
         run: |
           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-          COMMIT_SHORT="${{ github.event.client_payload.commit_sha }}"
+          COMMIT_SHORT="${{ github.event.inputs.commit_sha }}"
           COMMIT_SHORT=${COMMIT_SHORT:0:7}
           BRANCH_NAME="data-change-notification-${COMMIT_SHORT}-${TIMESTAMP}"
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
@@ -53,21 +74,21 @@ jobs:
           cat > "$NOTIFICATION_FILE" << 'EOF'
           # Data Change Notification
           
-          **Repository**: ${{ github.event.client_payload.repository }}
-          **Commit**: ${{ github.event.client_payload.commit_sha }}
-          **Author**: ${{ github.event.client_payload.author }}
-          **Timestamp**: ${{ github.event.client_payload.timestamp }}
+          **Repository**: ${{ github.event.inputs.repository }}
+          **Commit**: ${{ github.event.inputs.commit_sha }}
+          **Author**: ${{ github.event.inputs.author }}
+          **Timestamp**: ${{ github.event.inputs.timestamp }}
           
           ## Commit Message
           ```
-          ${{ github.event.client_payload.commit_message }}
+          ${{ github.event.inputs.commit_message }}
           ```
           
           ## Changed Files
           EOF
           
           # Parse and format the changed files JSON array
-          echo '${{ toJSON(github.event.client_payload.changed_files) }}' | jq -r '.[] | "- `" + . + "`"' >> "$NOTIFICATION_FILE"
+          echo '${{ toJSON(github.event.inputs.changed_files) }}' | jq -r '.[] | "- `" + . + "`"' >> "$NOTIFICATION_FILE"
           
           cat >> "$NOTIFICATION_FILE" << 'EOF'
           
@@ -85,14 +106,14 @@ jobs:
           
           ## Links
           
-          - [View Changes](${{ github.event.client_payload.compare_url }})
-          - [Commit Details](https://github.com/${{ github.event.client_payload.repository }}/commit/${{ github.event.client_payload.commit_sha }})
-          - [Source Repository](https://github.com/${{ github.event.client_payload.repository }})
+          - [View Changes](${{ github.event.inputs.compare_url }})
+          - [Commit Details](https://github.com/${{ github.event.inputs.repository }}/commit/${{ github.event.inputs.commit_sha }})
+          - [Source Repository](https://github.com/${{ github.event.inputs.repository }})
           
           ---
           
           *This PR was automatically created by the cross-repository webhook system.*
-          *Generated at: ${{ github.event.client_payload.timestamp }}*
+          *Generated at: ${{ github.event.inputs.timestamp }}*
           EOF
           
           echo "✅ Created notification file: $NOTIFICATION_FILE"
@@ -101,12 +122,12 @@ jobs:
       - name: Commit notification file
         run: |
           git add data/notifications/
-          git commit -m "Add data change notification from ${{ github.event.client_payload.repository }}
+          git commit -m "Add data change notification from ${{ github.event.inputs.repository }}
           
           - Commit: ${{ env.COMMIT_SHORT }}
-          - Author: ${{ github.event.client_payload.author }}
-          - Files: ${{ github.event.client_payload.changed_files }}
-          - Timestamp: ${{ github.event.client_payload.timestamp }}"
+          - Author: ${{ github.event.inputs.author }}
+          - Files: ${{ github.event.inputs.changed_files }}
+          - Timestamp: ${{ github.event.inputs.timestamp }}"
           
           git push origin ${{ env.BRANCH_NAME }}
           echo "✅ Committed and pushed notification file"
@@ -115,7 +136,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const changedFiles = ${{ toJSON(github.event.client_payload.changed_files) }};
+            const changedFiles = ${{ toJSON(github.event.inputs.changed_files) }};
             const fileCount = changedFiles.length;
             const fileList = changedFiles.map(file => `- \`${file}\``).join('\n');
             
@@ -127,30 +148,30 @@ jobs:
               base: 'main',
               body: `## 📊 Data Change Detected
               
-              A change was detected in the data folder of **${{ github.event.client_payload.repository }}**.
+              A change was detected in the data folder of **${{ github.event.inputs.repository }}**.
               
               ### 📋 Change Details
               
               | Field | Value |
               |-------|-------|
-              | **Repository** | ${{ github.event.client_payload.repository }} |
-              | **Commit** | \`${{ github.event.client_payload.commit_sha }}\` |
-              | **Author** | ${{ github.event.client_payload.author }} |
-              | **Timestamp** | ${{ github.event.client_payload.timestamp }} |
+              | **Repository** | ${{ github.event.inputs.repository }} |
+              | **Commit** | \`${{ github.event.inputs.commit_sha }}\` |
+              | **Author** | ${{ github.event.inputs.author }} |
+              | **Timestamp** | ${{ github.event.inputs.timestamp }} |
               | **Files Changed** | ${fileCount} file(s) |
               
               ### 💬 Commit Message
               \`\`\`
-              ${{ github.event.client_payload.commit_message }}
+              ${{ github.event.inputs.commit_message }}
               \`\`\`
               
               ### 📁 Changed Files
               ${fileList}
               
               ### 🔗 Quick Links
-              - [📊 View Changes](${{ github.event.client_payload.compare_url }})
-              - [📝 Commit Details](https://github.com/${{ github.event.client_payload.repository }}/commit/${{ github.event.client_payload.commit_sha }})
-              - [🏠 Source Repository](https://github.com/${{ github.event.client_payload.repository }})
+              - [📊 View Changes](${{ github.event.inputs.compare_url }})
+              - [📝 Commit Details](https://github.com/${{ github.event.inputs.repository }}/commit/${{ github.event.inputs.commit_sha }})
+              - [🏠 Source Repository](https://github.com/${{ github.event.inputs.repository }})
               
               ### ✅ Next Steps
               - Review the notification file in \`${process.env.NOTIFICATION_FILE}\`
@@ -161,7 +182,7 @@ jobs:
               ---
               
               🤖 *This PR was automatically created by the cross-repository webhook system.*
-              ⏰ *Generated at: ${{ github.event.client_payload.timestamp }}*`
+              ⏰ *Generated at: ${{ github.event.inputs.timestamp }}*`
             });
             
             console.log(`✅ Created PR #${pr.number}: ${pr.html_url}`);
